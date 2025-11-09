@@ -9,8 +9,8 @@ import (
 func TestEncodeSineWave(t *testing.T) {
 	// Generate a sine wave WAV file
 	var wavBuf bytes.Buffer
-	frequency := 440.0  // A4 note
-	duration := 1.0     // 1 second
+	frequency := 440.0 // A4 note
+	duration := 1.0    // 1 second
 	sampleRate := uint32(44100)
 	channels := uint16(2)
 	bitsPerSample := uint16(16)
@@ -179,7 +179,7 @@ func TestBitWriter_AlignToByte(t *testing.T) {
 	bw := newBitWriter()
 
 	bw.writeBits(0x07, 3) // 111
-	bw.alignToByte()       // Should pad with 00000
+	bw.alignToByte()      // Should pad with 00000
 
 	result := bw.bytes()
 	if len(result) != 1 {
