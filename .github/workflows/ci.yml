@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+        
+    - name: Run tests
+      run: go test -v
+      
+    - name: Run encode_sine example
+      run: |
+        cd examples/encode_sine
+        go run main.go
+        
+    - name: Install Sox
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sox libsox-fmt-all
+        
+    - name: Verify FLAC file with Sox
+      run: |
+        cd examples/encode_sine
+        # Check if the FLAC file was created
+        if [ ! -f "sine.flac" ]; then
+          echo "Error: sine.flac was not created"
+          exit 1
+        fi
+        
+        # Use sox to decode and verify the FLAC file
+        echo "Verifying FLAC file with Sox..."
+        sox sine.flac -n stat
+        
+        # Try to convert FLAC to WAV to ensure it's valid
+        echo "Converting FLAC to WAV to verify decoding..."
+        sox sine.flac test_output.wav
+        
+        # Check if the output was created
+        if [ ! -f "test_output.wav" ]; then
+          echo "Error: Sox failed to decode FLAC file"
+          exit 1
+        fi
+        
+        echo "Success! Sox successfully decoded the FLAC file"
+        
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: audio-files
+        path: |
+          examples/encode_sine/sine.flac
+          examples/encode_sine/sine.wav
+          examples/encode_sine/test_output.wav
