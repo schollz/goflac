@@ -9,15 +9,15 @@ import (
 
 // Encoder represents a FLAC stream encoder
 type Encoder struct {
-	w              io.Writer
-	sampleRate     uint32
-	channels       uint8
-	bitsPerSample  uint8
-	totalSamples   uint64
-	blockSize      uint32
-	minFrameSize   uint32
-	maxFrameSize   uint32
-	md5sum         [16]byte
+	w             io.Writer
+	sampleRate    uint32
+	channels      uint8
+	bitsPerSample uint8
+	totalSamples  uint64
+	blockSize     uint32
+	minFrameSize  uint32
+	maxFrameSize  uint32
+	md5sum        [16]byte
 }
 
 // NewEncoder creates a new FLAC encoder
@@ -61,35 +61,35 @@ func (e *Encoder) WriteStreamInfo() error {
 
 	// STREAMINFO block (34 bytes)
 	streamInfo := make([]byte, 34)
-	
+
 	// Min block size (16 bits)
 	binary.BigEndian.PutUint16(streamInfo[0:2], uint16(e.blockSize))
-	
+
 	// Max block size (16 bits)
 	binary.BigEndian.PutUint16(streamInfo[2:4], uint16(e.blockSize))
-	
+
 	// Min frame size (24 bits) - 0 for unknown
 	streamInfo[4] = 0
 	streamInfo[5] = 0
 	streamInfo[6] = 0
-	
+
 	// Max frame size (24 bits) - 0 for unknown
 	streamInfo[7] = 0
 	streamInfo[8] = 0
 	streamInfo[9] = 0
-	
+
 	// Sample rate (20 bits) + channels (3 bits) + bits per sample (5 bits)
 	// Byte 10-11-12: sample rate (20 bits)
 	streamInfo[10] = byte(e.sampleRate >> 12)
 	streamInfo[11] = byte(e.sampleRate >> 4)
 	streamInfo[12] = byte((e.sampleRate&0x0F)<<4) | byte((e.channels-1)<<1) | byte((e.bitsPerSample-1)>>4)
-	
+
 	// Byte 13: bits per sample (4 bits) + total samples (4 bits)
 	streamInfo[13] = byte(((e.bitsPerSample-1)&0x0F)<<4) | byte(e.totalSamples>>32)
-	
+
 	// Bytes 14-17: total samples (32 bits)
 	binary.BigEndian.PutUint32(streamInfo[14:18], uint32(e.totalSamples))
-	
+
 	// Bytes 18-33: MD5 signature (16 bytes) - all zeros for now
 	copy(streamInfo[18:34], e.md5sum[:])
 
@@ -162,7 +162,10 @@ func (e *Encoder) EncodeFrame(samples [][]int32, frameNumber uint64) error {
 	}
 
 	// Header CRC-8
-	headerBytes := buf.bytes()
+	// Make a copy to avoid holding reference to buffer's internal slice
+	// which may be invalidated when buffer grows
+	headerBytes := make([]byte, len(buf.bytes()))
+	copy(headerBytes, buf.bytes())
 	crc8 := calculateCRC8(headerBytes)
 	buf.writeBits(uint64(crc8), 8)
 
@@ -177,7 +180,10 @@ func (e *Encoder) EncodeFrame(samples [][]int32, frameNumber uint64) error {
 	buf.alignToByte()
 
 	// Frame CRC-16
-	frameBytes := buf.bytes()
+	// Make a copy to avoid holding reference to buffer's internal slice
+	// which may be invalidated when buffer grows
+	frameBytes := make([]byte, len(buf.bytes()))
+	copy(frameBytes, buf.bytes())
 	crc16 := calculateCRC16(frameBytes)
 	buf.writeBits(uint64(crc16), 16)
 
