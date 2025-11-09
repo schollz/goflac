@@ -53,8 +53,8 @@ func (e *Encoder) WriteStreamInfo() error {
 	}
 
 	// Block length (34 bytes for STREAMINFO)
-	length := make([]byte, 3)
-	binary.BigEndian.PutUint32(append([]byte{0}, length...)[:4], 34)
+	length := make([]byte, 4)
+	binary.BigEndian.PutUint32(length, 34)
 	if _, err := e.w.Write(length[1:]); err != nil {
 		return err
 	}

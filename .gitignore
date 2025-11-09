@@ -21,6 +21,9 @@ go.work
 *.wav
 *.flac
 
+# Example binaries
+examples/encode_sine/encode_sine
+
 # IDE files
 .vscode/
 .idea/
